@@ -60,7 +60,7 @@ extension AdventDay: Sendable {
 
   static func loadData(challengeDay: Int) -> String {
     let dayString = String(format: "%02d", challengeDay)
-    let dataFilename = "Day\(dayString)"
+    let dataFilename = "day\(dayString)"
     let dataURL = Bundle.module.url(
       forResource: dataFilename,
       withExtension: "txt",
