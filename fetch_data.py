@@ -47,8 +47,8 @@ def main() -> None:
     assert aoc_cookie is not None
 
     for day in range(1, current_date.day + 1):
-        print(f"Fetching Day {day:02}...", end="\r")
-        filename = f"day{current_date.day:02}.txt"
+        print(f"Fetching Day {day:02}...")
+        filename = f"day{day:02}.txt"
         for dir in DATA_DIRECTORIES:
             data_path = PROJECT_DIR / f"{current_date.year}" / dir
             if not (data_path / filename).exists():
