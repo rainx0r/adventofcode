@@ -5,9 +5,7 @@ pairs :: [a] -> [(a, a)]
 pairs = zip <*> drop 1
 
 checkReport :: [Integer] -> (Integer -> Integer -> Bool) -> Bool
-checkReport xs cond = foldl checkPairs True (pairs xs)
-  where
-    checkPairs s (x, y) = s && (cond x y)
+checkReport xs cond = all (uncurry cond) (pairs xs)
 
 diffIsValid :: Integer -> Integer -> Bool
 diffIsValid a b =
@@ -24,14 +22,15 @@ isReportSafe :: [Integer] -> Bool
 isReportSafe xs = (isReportIncreasing xs || isReportDecreasing xs) && hasValidDiffs xs
 
 isReportSafeDampened :: [Integer] -> Bool
-isReportSafeDampened xs = isReportSafe xs || any id ((map isReportSafe) [take i xs ++ drop (i + 1) xs | i <- [0 .. length xs - 1]])
+isReportSafeDampened xs =
+  let ds = [take i xs ++ drop (i + 1) xs | i <- [0 .. length xs - 1]]
+   in any isReportSafe $ [xs] ++ ds
 
 part1 :: IO Integer
-part1 = sum . map (toInteger . fromEnum . isReportSafe) <$> parseInput
+part1 = toInteger . length . filter isReportSafe <$> parseInput
 
 part2 :: IO Integer
-part2 = sum . map (toInteger . fromEnum . isReportSafeDampened) <$> parseInput
-
+part2 = toInteger . length . filter isReportSafeDampened <$> parseInput
 
 main :: IO ()
 main = do
