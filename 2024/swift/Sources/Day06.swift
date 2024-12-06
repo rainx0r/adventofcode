@@ -40,6 +40,21 @@ struct Day06: AdventDay {
             self.finished = false
             self.looping = false
         }
+        
+        func getRenderingDirection() -> Character {
+            switch self.map[self.positionOfGuard]! {
+                case "^":
+                    "|"
+                case "v":
+                    "|"
+                case ">":
+                    "-"
+                case "<":
+                    "-"
+                default:
+                    fatalError("Unexpected character position value: \(self.map[self.positionOfGuard]!)")
+                }
+        }
 
         mutating func step() {
             let (x, y) = (self.positionOfGuard.x, self.positionOfGuard.y)
@@ -62,6 +77,8 @@ struct Day06: AdventDay {
                 // If OOB, exit
                 self.visited.insert(self.positionOfGuard)
                 self.finished = true
+                self.actualDirections[self.positionOfGuard] = characterDirection
+                self.renderingDirections[self.positionOfGuard] = self.getRenderingDirection()
             } else {
                 // Else, check collision with wall
                 if self.map[nextPosition]! == "#" {
@@ -85,18 +102,7 @@ struct Day06: AdventDay {
                     // Step forward in currently facing direction
                     if !self.renderingDirections.keys.contains(self.positionOfGuard) {
                         // We haven't gone past the current tile before, store facing direction
-                        self.renderingDirections[self.positionOfGuard] = switch characterDirection {
-                        case "^":
-                            "|"
-                        case "v":
-                            "|"
-                        case ">":
-                            "-"
-                        case "<":
-                            "-"
-                        default:
-                            fatalError("Unexpected character position value: \(characterDirection)")
-                        }
+                        self.renderingDirections[self.positionOfGuard] = self.getRenderingDirection()
                     } else {
                         // We have gone past the previous tile before
                         let pastDirection = self.renderingDirections[self.positionOfGuard]!
@@ -182,26 +188,22 @@ struct Day06: AdventDay {
     func part2() async throws -> Int {
         let start = Date()
         let gg = self.entities
-
+        
+        var unrolledGG = gg
+        while !unrolledGG.finished {
+            unrolledGG.step()
+        }
+        
         let possibleObstacleCount = await withTaskGroup(of: Bool.self) { group in
-            for i in 0...(gg.bounds.x - 1) {
-                for j in 0...(gg.bounds.y - 1) {
-                    let candidatePosition = Coord(i, j)
-                    let candidatePositionValue = gg.map[candidatePosition]
-                    if candidatePositionValue != "#" && candidatePositionValue != "^" {
-                        group.addTask {
-                            return simulateObstacle(gg, candidatePosition)
-                        }
+            for candidatePosition in unrolledGG.actualDirections.keys {
+                if gg.map[candidatePosition]! != "^" {
+                    group.addTask {
+                        return simulateObstacle(gg, candidatePosition)
                     }
                 }
             }
             
-            var sum = 0
-            
-            for await result in group {
-                sum += result ? 1 : 0
-            }
-            return sum
+            return await group.map { $0 ? 1 : 0 }.reduce(0, +)
         }
 
         let end = Date()
