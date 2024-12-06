@@ -1,3 +1,4 @@
+import Foundation
 import Algorithms
 import Parsing
 
@@ -167,32 +168,45 @@ struct Day06: AdventDay {
 
         print(retStr)
     }
+    
+    func simulateObstacle(_ gg: GuardGallivant, _ obstaclePos: Coord) -> Bool {
+        var gg2 = gg
+        gg2.map[obstaclePos] = "#"
+        while !gg2.finished && !gg2.looping {
+            gg2.step()
+        }
+        return gg2.looping
+    }
 
     // Replace this with your solution for the second part of the day's challenge.
     func part2() async throws -> Int {
+        let start = Date()
         let gg = self.entities
-        var possibleObstacleCount = 0
 
-        for i in 0...(gg.bounds.x - 1) {
-            print("- \(i)")
-            for j in 0...(gg.bounds.y - 1) {
-                let candidatePosition = Coord(i, j)
-                let candidatePositionValue = gg.map[candidatePosition]
-                if candidatePositionValue != "#" && candidatePositionValue != "^" {
-                    var gg2 = gg
-                    gg2.map[candidatePosition] = "#"
-                    while !gg2.finished && !gg2.looping {
-                        gg2.step()
-                    }
-                    if gg2.looping {
-                        gg2.map[candidatePosition] = "O"
-//                        print("\(i),\(j)")
-//                        printMap(gg2)
-                        possibleObstacleCount += 1
+        let possibleObstacleCount = await withTaskGroup(of: Bool.self) { group in
+            for i in 0...(gg.bounds.x - 1) {
+                for j in 0...(gg.bounds.y - 1) {
+                    let candidatePosition = Coord(i, j)
+                    let candidatePositionValue = gg.map[candidatePosition]
+                    if candidatePositionValue != "#" && candidatePositionValue != "^" {
+                        group.addTask {
+                            return simulateObstacle(gg, candidatePosition)
+                        }
                     }
                 }
             }
+            
+            var sum = 0
+            
+            for await result in group {
+                sum += result ? 1 : 0
+            }
+            return sum
         }
+
+        let end = Date()
+        
+        print("Time elapsed: \(end.timeIntervalSince(start))s.")
 
         return possibleObstacleCount
     }
