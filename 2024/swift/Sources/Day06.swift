@@ -185,17 +185,18 @@ struct Day06: AdventDay {
                 }
             }
         }
-        
+
         for key in rowObstacles.keys {
             rowObstacles[key]!.sort()
         }
+
         for key in colObstacles.keys {
             colObstacles[key]!.sort()
         }
 
         return GuardGallivant(rowObstacles, colObstacles, positionOfCharacter!, Coord(lines.count, firstLine.count))
     }
-    
+
     // Replace this with your solution for the first part of the day's challenge.
     func part1() async throws -> Int {
         var gg = self.entities
@@ -217,7 +218,7 @@ struct Day06: AdventDay {
         }
         gg2.rowObstacles[obstaclePos.y]!.append(obstaclePos.x)
         gg2.rowObstacles[obstaclePos.y]!.sort()
-        
+
         gg2.colObstacles[obstaclePos.x]!.append(obstaclePos.y)
         gg2.colObstacles[obstaclePos.x]!.sort()
         while !gg2.finished && !gg2.looping {
