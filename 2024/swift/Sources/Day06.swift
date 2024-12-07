@@ -1,5 +1,5 @@
-import Foundation
 import Algorithms
+import Foundation
 import Parsing
 
 struct Day06: AdventDay {
@@ -17,113 +17,143 @@ struct Day06: AdventDay {
     }
 
     struct GuardGallivant {
-        var map: [Coord: Character]
-        var renderingDirections: [Coord: Character]
-        var actualDirections: [Coord: Character]
+        let startingPos: Coord
+        var directions: [Coord: Character]
+        var direction: Character
+        var rowObstacles: [Int: [Int]]
+        var colObstacles: [Int: [Int]]
         var positionOfGuard: Coord
         let bounds: Coord
-        var visited: Set<Coord>
         var finished: Bool
         var looping: Bool
 
-        init(_ map: [Coord: Character], _ positionOfGuard: Coord, _ bounds: Coord) {
-            self.map = map
-            self.renderingDirections = [:]
-            self.renderingDirections.reserveCapacity(map.count)
-            self.actualDirections = [:]
-            self.actualDirections.reserveCapacity(map.count)
+        init(_ rowObstacles: [Int: [Int]], _ colObstacles: [Int: [Int]], _ positionOfGuard: Coord, _ bounds: Coord) {
+            self.rowObstacles = rowObstacles
+            self.colObstacles = colObstacles
+            self.directions = [:]
+            self.directions.reserveCapacity(bounds.x * bounds.y)
             self.bounds = bounds
             self.positionOfGuard = positionOfGuard
-            self.visited = Set<Coord>()
-            self.visited.reserveCapacity(map.count)
-            self.visited.insert(positionOfGuard)
+            self.startingPos = positionOfGuard
             self.finished = false
             self.looping = false
+            self.direction = "^"
         }
-        
-        func getRenderingDirection() -> Character {
-            switch self.map[self.positionOfGuard]! {
-                case "^":
-                    "|"
-                case "v":
-                    "|"
-                case ">":
-                    "-"
-                case "<":
-                    "-"
-                default:
-                    fatalError("Unexpected character position value: \(self.map[self.positionOfGuard]!)")
+
+        func rotate() -> Character {
+            return switch self.direction {
+            case "^":
+                ">"
+            case ">":
+                "v"
+            case "v":
+                "<"
+            case "<":
+                "^"
+            default:
+                fatalError("Unexpected character position value")
+            }
+        }
+
+        func getNextPosition(_ pos: Coord, _ direction: Character) -> Coord? {
+            switch direction {
+            case "^":
+                if let nextObstacleY = self.colObstacles[pos.x]?.reversed().first(where: { $0 < pos.y }) {
+                    Coord(pos.x, nextObstacleY + 1)
+                } else {
+                    nil
                 }
+            case ">":
+                if let nextObstacleX = self.rowObstacles[pos.y]?.first(where: { $0 > pos.x }) {
+                    Coord(nextObstacleX - 1, pos.y)
+                } else {
+                    nil
+                }
+            case "v":
+                if let nextObstacleY = self.colObstacles[pos.x]?.first(where: { $0 > pos.y }) {
+                    Coord(pos.x, nextObstacleY - 1)
+                } else {
+                    nil
+                }
+            case "<":
+                if let nextObstacleX = self.rowObstacles[pos.y]?.reversed().first(where: { $0 < pos.x }) {
+                    Coord(nextObstacleX + 1, pos.y)
+                } else {
+                    nil
+                }
+            default:
+                fatalError("Unexpected character position value")
+            }
         }
 
         mutating func step() {
-            let (x, y) = (self.positionOfGuard.x, self.positionOfGuard.y)
-            var characterDirection = self.map[self.positionOfGuard]!
-
-            let nextPosition: Coord = switch characterDirection {
-            case "^":
-                Coord(x, y - 1)
-            case ">":
-                Coord(x + 1, y)
-            case "v":
-                Coord(x, y + 1)
-            case "<":
-                Coord(x - 1, y)
-            default:
-                fatalError("Unexpected character position value: \(characterDirection)")
-            }
-
-            if nextPosition.x >= self.bounds.x || nextPosition.y >= self.bounds.y || nextPosition.x < 0 || nextPosition.y < 0 {
-                // If OOB, exit
-                self.visited.insert(self.positionOfGuard)
-                self.finished = true
-                self.actualDirections[self.positionOfGuard] = characterDirection
-                self.renderingDirections[self.positionOfGuard] = self.getRenderingDirection()
-            } else {
-                // Else, check collision with wall
-                if self.map[nextPosition]! == "#" {
-                    // On wall collision, rotate 90deg clockwise
-                    characterDirection = switch characterDirection {
-                    case "^":
-                        ">"
-                    case ">":
-                        "v"
-                    case "v":
-                        "<"
-                    case "<":
-                        "^"
-                    default:
-                        fatalError("Unexpected character position value: \(characterDirection)")
-                    }
-                    self.map.updateValue(characterDirection, forKey: self.positionOfGuard)
-                    // NOTE: Seems to be how the notation is intended
-                    self.renderingDirections[self.positionOfGuard] = "+"
+            let nextPosition: Coord? = self.getNextPosition(self.positionOfGuard, self.direction)
+            if nextPosition == nil || nextPosition! != self.positionOfGuard {
+                if let existingDirection = self.directions[self.positionOfGuard] {
+                    self.looping = existingDirection == self.direction
                 } else {
-                    // Step forward in currently facing direction
-                    if !self.renderingDirections.keys.contains(self.positionOfGuard) {
-                        // We haven't gone past the current tile before, store facing direction
-                        self.renderingDirections[self.positionOfGuard] = self.getRenderingDirection()
-                    } else {
-                        // We have gone past the previous tile before
-                        let pastDirection = self.renderingDirections[self.positionOfGuard]!
-                        if !(pastDirection == "-" && (characterDirection == ">" || characterDirection == "<"))
-                            && !(pastDirection == "|" && (characterDirection == "^" || characterDirection == "v")) {
-                            self.renderingDirections[self.positionOfGuard] = "+"
-                        }
-                    }
-                
-                    if !self.actualDirections.keys.contains(self.positionOfGuard) {
-                        self.actualDirections[self.positionOfGuard] = characterDirection
-                    } else {
-                        self.looping = self.actualDirections[self.positionOfGuard] == characterDirection
-                    }
-
-                    self.visited.insert(self.positionOfGuard)
-                    self.map.updateValue(characterDirection, forKey: nextPosition)
-                    self.map.updateValue(".", forKey: self.positionOfGuard)
-                    self.positionOfGuard = nextPosition
+                    self.directions[self.positionOfGuard] = self.direction
                 }
             }
+
+            if let pos = nextPosition {
+                self.direction = self.rotate()
+                self.positionOfGuard = pos
+            } else {
+                self.finished = true
+            }
+        }
+
+        func visited() -> Set<Coord> {
+            var ret = Set<Coord>()
+
+            for (stepCoord, stepDirection) in self.directions {
+                if let nextPosition = getNextPosition(stepCoord, stepDirection) {
+                    switch stepDirection {
+                    case "^":
+                        for j in nextPosition.y...stepCoord.y {
+                            ret.insert(Coord(stepCoord.x, j))
+                        }
+                    case ">":
+                        for i in stepCoord.x...nextPosition.x {
+                            ret.insert(Coord(i, stepCoord.y))
+                        }
+                    case "v":
+                        for j in stepCoord.y...nextPosition.y {
+                            ret.insert(Coord(stepCoord.x, j))
+                        }
+                    case "<":
+                        for i in nextPosition.x...stepCoord.x {
+                            ret.insert(Coord(i, stepCoord.y))
+                        }
+                    default:
+                        fatalError("Unexpected character position value")
+                    }
+                } else {
+                    switch stepDirection {
+                    case "^":
+                        for j in 0...stepCoord.y {
+                            ret.insert(Coord(stepCoord.x, j))
+                        }
+                    case ">":
+                        for i in stepCoord.x...(self.bounds.x - 1) {
+                            ret.insert(Coord(i, stepCoord.y))
+                        }
+                    case "v":
+                        for j in stepCoord.y...(self.bounds.y - 1) {
+                            ret.insert(Coord(stepCoord.x, j))
+                        }
+                    case "<":
+                        for i in 0...(stepCoord.x) {
+                            ret.insert(Coord(i, stepCoord.y))
+                        }
+                    default:
+                        fatalError("Unexpected character position value")
+                    }
+                }
+            }
+
+            return ret
         }
     }
 
@@ -131,22 +161,41 @@ struct Day06: AdventDay {
     var entities: GuardGallivant {
         let lines = self.data.split(separator: "\n")
         let firstLine = lines.first!
-        var map: [Coord: Character] = [:]
-        map.reserveCapacity(lines.count * firstLine.count)
+        var rowObstacles: [Int: [Int]] = [:]
+        rowObstacles.reserveCapacity(lines.count)
+        var colObstacles: [Int: [Int]] = [:]
+        colObstacles.reserveCapacity(firstLine.count)
         var positionOfCharacter: Coord? = nil
 
         for (j, line) in self.data.split(separator: "\n").enumerated() {
             for (i, char) in line.enumerated() {
-                map[Coord(i, j)] = char
                 if char == "^" {
                     positionOfCharacter = Coord(i, j)
+                } else if char == "#" {
+                    if !rowObstacles.keys.contains(j) {
+                        rowObstacles[j] = []
+                        rowObstacles[j]!.reserveCapacity(firstLine.count)
+                    }
+                    if !colObstacles.keys.contains(i) {
+                        colObstacles[i] = []
+                        colObstacles[i]!.reserveCapacity(lines.count)
+                    }
+                    rowObstacles[j]!.append(i)
+                    colObstacles[i]!.append(j)
                 }
             }
         }
+        
+        for key in rowObstacles.keys {
+            rowObstacles[key]!.sort()
+        }
+        for key in colObstacles.keys {
+            colObstacles[key]!.sort()
+        }
 
-        return GuardGallivant(map, positionOfCharacter!, Coord(lines.count, firstLine.count))
+        return GuardGallivant(rowObstacles, colObstacles, positionOfCharacter!, Coord(lines.count, firstLine.count))
     }
-
+    
     // Replace this with your solution for the first part of the day's challenge.
     func part1() async throws -> Int {
         var gg = self.entities
@@ -155,29 +204,22 @@ struct Day06: AdventDay {
             gg.step()
         }
 
-        return gg.visited.count
+        return gg.visited().count
     }
-    
-    func printMap(_ gg: GuardGallivant) {
-        var retStr = ""
-        
-        for j in 0...(gg.bounds.y - 1) {
-            for i in 0...(gg.bounds.x - 1) {
-                var mapValue = gg.map[Coord(i, j)]!
-                if mapValue == "." {
-                    mapValue = gg.renderingDirections[Coord(i, j)] ?? "."
-                }
-                retStr.append(mapValue)
-            }
-            retStr.append("\n")
-        }
 
-        print(retStr)
-    }
-    
     func simulateObstacle(_ gg: GuardGallivant, _ obstaclePos: Coord) -> Bool {
         var gg2 = gg
-        gg2.map[obstaclePos] = "#"
+        if !gg2.rowObstacles.keys.contains(obstaclePos.y) {
+            gg2.rowObstacles[obstaclePos.y] = []
+        }
+        if !gg2.colObstacles.keys.contains(obstaclePos.x) {
+            gg2.colObstacles[obstaclePos.x] = []
+        }
+        gg2.rowObstacles[obstaclePos.y]!.append(obstaclePos.x)
+        gg2.rowObstacles[obstaclePos.y]!.sort()
+        
+        gg2.colObstacles[obstaclePos.x]!.append(obstaclePos.y)
+        gg2.colObstacles[obstaclePos.x]!.sort()
         while !gg2.finished && !gg2.looping {
             gg2.step()
         }
@@ -188,26 +230,26 @@ struct Day06: AdventDay {
     func part2() async throws -> Int {
         let start = Date()
         let gg = self.entities
-        
+
         var unrolledGG = gg
         while !unrolledGG.finished {
             unrolledGG.step()
         }
-        
+
         let possibleObstacleCount = await withTaskGroup(of: Bool.self) { group in
-            for candidatePosition in unrolledGG.actualDirections.keys {
-                if gg.map[candidatePosition]! != "^" {
+            for candidatePosition in unrolledGG.visited() {
+                if candidatePosition != gg.startingPos {
                     group.addTask {
-                        return simulateObstacle(gg, candidatePosition)
+                        self.simulateObstacle(gg, candidatePosition)
                     }
                 }
             }
-            
+
             return await group.map { $0 ? 1 : 0 }.reduce(0, +)
         }
 
         let end = Date()
-        
+
         print("Time elapsed: \(end.timeIntervalSince(start))s.")
 
         return possibleObstacleCount
