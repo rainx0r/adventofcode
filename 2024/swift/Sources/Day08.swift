@@ -12,6 +12,14 @@ struct Day08: AdventDay {
             self.x = x
             self.y = y
         }
+        
+        static func + (lhs: Coord, rhs: Coord) -> Coord {
+            return Coord(lhs.x + rhs.x, lhs.y + rhs.y)
+        }
+        
+        static func - (lhs: Coord, rhs: Coord) -> Coord {
+            return Coord(lhs.x - rhs.x, lhs.y - rhs.y)
+        }
     }
     
     struct CoordPair: Hashable {
@@ -24,10 +32,8 @@ struct Day08: AdventDay {
         }
         
         func getAntinodeCandidates() -> (Coord, Coord) {
-            let diff = Coord(coord2.x - coord1.x, coord2.y - coord1.y)
-            let antinode1 = Coord(coord1.x - diff.x, coord1.y - diff.y)
-            let antinode2 = Coord(coord2.x + diff.x, coord2.y + diff.y)
-            return (antinode1, antinode2)
+            let diff = coord2 - coord1
+            return (coord1 - diff, coord2 + diff)
         }
     }
     
@@ -40,6 +46,24 @@ struct Day08: AdventDay {
             self.antennae = antennae
             self.fullMap = fullMap
             self.bounds = bounds
+        }
+        
+        func draw(drawAntinodes: Bool = false, part1: Bool = false) async {
+            var drawStr = ""
+            let antinodes = if drawAntinodes { part1 ? await self.getAntinodes() : await self.getAllAntinodes() } else { Set<Coord>() }
+            
+            for j in 0...(self.bounds.x - 1) {
+                for i in 0...(self.bounds.y - 1) {
+                    let currentCoord = Coord(i,j)
+                    if antinodes.contains(currentCoord) {
+                        drawStr.append(Character("#"))
+                    } else {
+                        drawStr.append(self.fullMap[currentCoord]!)
+                    }
+                }
+                drawStr.append(Character("\n"))
+            }
+            print(drawStr)
         }
         
         func inBounds(_ coord: Coord) -> Bool {
@@ -62,7 +86,7 @@ struct Day08: AdventDay {
         }
         
         func _antinodeValid(_ coord: Coord) -> Bool {
-            self.inBounds(coord) && self.fullMap[coord] == "."
+            self.inBounds(coord) // && self.fullMap[coord] == "."
         }
         
         func getAntinodes() async -> Set<Coord> {
@@ -76,6 +100,39 @@ struct Day08: AdventDay {
                             let (antinode1, antinode2) = coordPair.getAntinodeCandidates()
                             if self._antinodeValid(antinode1) { antinodeCoords.append(antinode1) }
                             if self._antinodeValid(antinode2) { antinodeCoords.append(antinode2) }
+                        }
+                        return antinodeCoords
+                    }
+                }
+                return await group.reduce(into: Set<Coord>(), { result, coords in
+                    result.formUnion(coords)
+                })
+            }
+            return antinodeResults
+        }
+        
+        func getAllAntinodes() async -> Set<Coord> {
+            let antinodeResults: Set<Coord> = await withTaskGroup(of: [Coord].self) { group in
+                for coords in self.antennae.values {
+                    group.addTask {
+                        let coordPairs = self._generatePairs(coords)
+                        var antinodeCoords: [Coord] = []
+                        let mapHypotenuse = Int(Double(self.bounds.x ^ 2 + self.bounds.y ^ 2).squareRoot().rounded(.up))
+                        antinodeCoords.reserveCapacity(coordPairs.count * mapHypotenuse)
+                        for coordPair in coordPairs {
+                            antinodeCoords.append(coordPair.coord1)
+                            antinodeCoords.append(coordPair.coord2)
+                            let diff = coordPair.coord2 - coordPair.coord1
+                            var leftAntinode = coordPair.coord1 - diff
+                            while self.inBounds(leftAntinode) {
+                                if self._antinodeValid(leftAntinode) { antinodeCoords.append(leftAntinode) }
+                                leftAntinode = leftAntinode - diff
+                            }
+                            var rightAntinode = coordPair.coord2 + diff
+                            while self.inBounds(rightAntinode) {
+                                if self._antinodeValid(rightAntinode) { antinodeCoords.append(rightAntinode) }
+                                rightAntinode = rightAntinode + diff
+                            }
                         }
                         return antinodeCoords
                     }
@@ -114,11 +171,13 @@ struct Day08: AdventDay {
 
     // Replace this with your solution for the first part of the day's challenge.
     func part1() async -> Int {
+//        await entities.draw(drawAntinodes: true)
         return await entities.getAntinodes().count
     }
 
     // Replace this with your solution for the second part of the day's challenge.
-    func part2() -> Any {
-        0
+    func part2() async -> Int {
+//        await entities.draw(drawAntinodes: true, part1: false)
+        return await entities.getAllAntinodes().count
     }
 }
