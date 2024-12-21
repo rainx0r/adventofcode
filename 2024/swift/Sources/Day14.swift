@@ -146,7 +146,6 @@ struct Day14: AdventDay {
     }
     
     func treeBaseDetected(_ robots: [Robot], _ bounds: Coord) -> Bool {
-        var ret = false
         var robotCoordsPerRow: [Int: [Coord]] = [:]
         for robot in robots {
             robotCoordsPerRow[robot.pos.y, default: []].append(robot.pos)
