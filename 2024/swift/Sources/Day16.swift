@@ -109,14 +109,13 @@ struct Day16: AdventDay {
                 }
 
                 for (direction, isTurn) in self.validDirections(node.direction) {
-                    if isTurn
-                    let nextCoord = node.coord + ((backwards ? -1 : 1) * direction.coord())
+                    let nextCoord = isTurn ? node.coord : node.coord + (backwards ? -1 : 1) * direction.coord()
                     let nextNode = PartialNode(nextCoord, direction)
                     switch self.map[nextCoord]! {
                     case "#":
                         continue
                     default:
-                        let gCost = costs[node.toPartial()]! + 1 + (isTurn ? 1000 : 0)
+                        let gCost = costs[node.toPartial()]! + (isTurn ? 1000 : 1)
                         if gCost >= costs[nextNode, default: Int.max] {
                             continue
                         } else {
