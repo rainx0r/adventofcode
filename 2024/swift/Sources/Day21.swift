@@ -184,7 +184,6 @@ struct Day21: AdventDay {
         return complexities
     }
 
-    // Replace this with your solution for the second part of the day's challenge.
     func part2() -> Any {
         let maxLayers = 26
         var complexities = 0
