@@ -1,3 +1,4 @@
+import sys
 from datetime import datetime
 from pathlib import Path
 import urllib.request
@@ -6,11 +7,10 @@ import os
 PROJECT_DIR = Path(__file__).parent
 CACHE_DIR = PROJECT_DIR / ".cache"
 
-DATA_DIRECTORIES = [
-    "haskell/data",
-    "swift/Sources/Data",
-    "zig/src/data",
-]
+DATA_DIRECTORIES = {
+    "haskell": "haskell/data",
+    "swift": "swift/Sources/Data",
+}
 
 
 def get_aoc_data(day: int, year: int, aoc_session: str):
@@ -46,18 +46,32 @@ def main() -> None:
     aoc_cookie = os.getenv("AOC_SESSION")
     assert aoc_cookie is not None
 
-    for day in range(1, current_date.day + 1):
+    # TODO: Proper CLI
+    if sys.argv[1] not in DATA_DIRECTORIES:
+        print(f"Please provide a language to download data for. Must be one of {DATA_DIRECTORIES.keys()}")
+        sys.exit(1)
+
+    def get_data(day: int) -> None:
         print(f"Fetching Day {day:02}...")
         filename = f"day{day:02}.txt"
-        for dir in DATA_DIRECTORIES:
-            data_path = PROJECT_DIR / f"{current_date.year}" / dir
-            if not (data_path / filename).exists():
-                aoc_data = get_aoc_data(day, current_date.year, aoc_cookie)
+        dir = DATA_DIRECTORIES[sys.argv[1]]
+        data_path = PROJECT_DIR / f"{current_date.year}" / dir
+        if not (data_path / filename).exists():
+            aoc_data = get_aoc_data(day, current_date.year, aoc_cookie)
 
-                filepath = data_path / filename
-                filepath.touch()
-                with open(filepath, "w") as f:
-                    f.write(aoc_data)
+            filepath = data_path / filename
+            filepath.touch()
+            with open(filepath, "w") as f:
+                f.write(aoc_data)
+
+    if len(sys.argv) > 2:
+        day = sys.argv[2]
+        if day == "current":
+            day = current_date.day
+        get_data(int(day))
+    else:
+        for day in range(1, current_date.day + 1):
+            get_data(day)
 
     print("Fetched all the data!")
 
