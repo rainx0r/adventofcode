@@ -10,6 +10,7 @@ CACHE_DIR = PROJECT_DIR / ".cache"
 DATA_DIRECTORIES = {
     "haskell": "haskell/data",
     "swift": "swift/Sources/Data",
+    "python": "python/data",
 }
 
 
