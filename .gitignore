@@ -2,3 +2,4 @@
 .env
 **/data/*.txt
 **/rust/target/*
+.DS_Store
