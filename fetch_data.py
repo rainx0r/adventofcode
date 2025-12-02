@@ -1,8 +1,8 @@
+import os
 import sys
+import urllib.request
 from datetime import datetime
 from pathlib import Path
-import urllib.request
-import os
 
 PROJECT_DIR = Path(__file__).parent
 CACHE_DIR = PROJECT_DIR / ".cache"
@@ -11,6 +11,7 @@ DATA_DIRECTORIES = {
     "haskell": "haskell/data",
     "swift": "swift/Sources/Data",
     "python": "python/data",
+    "rust": "rust/data",
 }
 
 
@@ -21,10 +22,7 @@ def get_aoc_data(day: int, year: int, aoc_session: str):
     if not cache_filepath.exists():
         req = urllib.request.Request(
             f"https://adventofcode.com/{year}/day/{day}/input",
-            headers={
-                "User-Agent": "Mozilla/5.0",
-                "Cookie": f"session={aoc_session}"
-            }
+            headers={"User-Agent": "Mozilla/5.0", "Cookie": f"session={aoc_session}"},
         )
         with urllib.request.urlopen(req) as r:
             data = r.read().decode("utf-8")
@@ -49,7 +47,9 @@ def main() -> None:
 
     # TODO: Proper CLI
     if sys.argv[1] not in DATA_DIRECTORIES:
-        print(f"Please provide a language to download data for. Must be one of {DATA_DIRECTORIES.keys()}")
+        print(
+            f"Please provide a language to download data for. Must be one of {DATA_DIRECTORIES.keys()}"
+        )
         sys.exit(1)
 
     def get_data(day: int) -> None:
