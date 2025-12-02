@@ -1,60 +1,52 @@
 use std::{fs, path::Path};
 
-pub fn part1() {
+const MODULUS: i32 = 100;
+const START: i32 = 50;
+
+fn parse_input() -> Vec<i32> {
     let file_path = Path::new("data/day01.txt");
     let contents = fs::read_to_string(file_path).expect("Input for this day should exist.");
 
-    let mut number: i32 = 50;
-    let modulus = 100;
-    let mut zero_count: i32 = 0;
+    return contents
+        .replace("R", "")
+        .replace("L", "-")
+        .split_whitespace()
+        .filter_map(|x| x.parse().ok())
+        .collect();
+}
 
-    for line in contents.lines() {
-        let (instruction, value_str) = line.split_at(1);
-        let offset: i32 = value_str.parse().expect("Should be a number");
-        match instruction {
-            "R" => {
-                number = (number + offset).rem_euclid(modulus);
-            }
-            "L" => {
-                number = (number - offset).rem_euclid(modulus);
-            }
-            _ => panic!("Unknown instruction: {}", instruction),
+pub fn part1() {
+    let mut number: i32 = START;
+    let mut zero_count: u32 = 0;
+
+    for offset in parse_input() {
+        number = (number + offset).rem_euclid(MODULUS);
+        if number == 0 {
+            zero_count += 1;
         }
-        zero_count += if number == 0 { 1 } else { 0 };
     }
-
     println!("{zero_count}");
 }
 
 pub fn part2() {
-    let file_path = Path::new("data/day01.txt");
-    let contents = fs::read_to_string(file_path).expect("Input for this day should exist.");
+    let mut number: i32 = START;
+    let mut zero_count: u32 = 0;
 
-    let mut number: i32 = 50;
-    let modulus = 100;
-    let mut zero_count: i32 = 0;
-
-    for line in contents.lines() {
-        let (instruction, value_str) = line.split_at(1);
-        let offset: i32 = value_str.parse().expect("Should be a number");
-
-        let full_rotations = offset / modulus;
+    for offset in parse_input() {
+        let full_rotations = (offset.abs() / MODULUS) as u32;
         zero_count += full_rotations;
 
-        let rest = offset % modulus;
-
-        match instruction {
-            "R" => {
-                zero_count += (number + rest > modulus) as i32;
-                number = (number + rest).rem_euclid(modulus);
-            }
-            "L" => {
-                zero_count += (number - rest < 0 && number != 0) as i32;
-                number = (number - rest).rem_euclid(modulus);
-            }
-            _ => panic!("Unknown instruction: {}", instruction),
+        let offset = (offset.abs() % MODULUS) * offset.signum();
+        if offset.signum() == 1 {
+            zero_count += (number + offset.abs() > MODULUS) as u32;
+        } else {
+            zero_count += (number - offset.abs() < 0 && number != 0) as u32;
         }
-        zero_count += if number == 0 { 1 } else { 0 };
+
+        number = (number + offset).rem_euclid(MODULUS);
+        if number == 0 {
+            zero_count += 1;
+        }
     }
 
     println!("{zero_count}");
